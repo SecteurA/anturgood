@@ -77,84 +77,57 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [dateFilters, setDateFilters] = useState({
+    dateFrom: '',
+    dateTo: ''
+  });
 
   useEffect(() => {
     fetchDashboardStats();
-  }, [selectedMonth, selectedYear]);
+  }, [dateFilters]);
 
-  // Generate month and year options
-  const generateMonthOptions = () => {
-    const months = [
-      { value: '', label: 'Tous les mois' },
-      { value: '1', label: 'Janvier' },
-      { value: '2', label: 'Février' },
-      { value: '3', label: 'Mars' },
-      { value: '4', label: 'Avril' },
-      { value: '5', label: 'Mai' },
-      { value: '6', label: 'Juin' },
-      { value: '7', label: 'Juillet' },
-      { value: '8', label: 'Août' },
-      { value: '9', label: 'Septembre' },
-      { value: '10', label: 'Octobre' },
-      { value: '11', label: 'Novembre' },
-      { value: '12', label: 'Décembre' }
-    ];
-    return months;
+  const handleDateFilterChange = (field: 'dateFrom' | 'dateTo', value: string) => {
+    setDateFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const generateYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const years = [{ value: '', label: 'Toutes les années' }];
-    
-    // Generate years from 2020 to current year + 1
-    for (let year = 2020; year <= currentYear + 1; year++) {
-      years.push({ value: year.toString(), label: year.toString() });
-    }
-    
-    return years.reverse(); // Most recent first
+  const clearDateFilters = () => {
+    setDateFilters({
+      dateFrom: '',
+      dateTo: ''
+    });
   };
 
-  // Filter by month/year
-  const filterByPeriod = (date: string) => {
-    if (!selectedMonth && !selectedYear) return true;
-    
-    const itemDate = new Date(date);
-    const itemMonth = itemDate.getMonth() + 1; // getMonth() returns 0-11
-    const itemYear = itemDate.getFullYear();
-    
-    const monthMatch = !selectedMonth || itemMonth.toString() === selectedMonth;
-    const yearMatch = !selectedYear || itemYear.toString() === selectedYear;
-    
-    return monthMatch && yearMatch;
+  const hasActiveFilters = () => {
+    return dateFilters.dateFrom || dateFilters.dateTo;
   };
-
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get date range based on filters or current month
+      // Get date range based on filters or default to current month
       const now = new Date();
       
       let firstDay: Date;
       let lastDay: Date;
       
-      if (selectedYear && selectedMonth) {
-        // Specific month and year
-        firstDay = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1);
-        lastDay = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0);
-      } else if (selectedYear && !selectedMonth) {
-        // Whole year
-        firstDay = new Date(parseInt(selectedYear), 0, 1);
-        lastDay = new Date(parseInt(selectedYear), 11, 31);
-      } else if (!selectedYear && selectedMonth) {
-        // Current year, specific month
-        firstDay = new Date(now.getFullYear(), parseInt(selectedMonth) - 1, 1);
-        lastDay = new Date(now.getFullYear(), parseInt(selectedMonth), 0);
+      if (dateFilters.dateFrom && dateFilters.dateTo) {
+        // Both dates specified
+        firstDay = new Date(dateFilters.dateFrom);
+        lastDay = new Date(dateFilters.dateTo);
+      } else if (dateFilters.dateFrom && !dateFilters.dateTo) {
+        // Only start date specified - go from start date to end of current month
+        firstDay = new Date(dateFilters.dateFrom);
+        lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else if (!dateFilters.dateFrom && dateFilters.dateTo) {
+        // Only end date specified - go from start of month to end date
+        firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        lastDay = new Date(dateFilters.dateTo);
       } else {
-        // Current month (default)
+        // No dates specified - default to current month
         firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       }
@@ -384,15 +357,13 @@ const Dashboard: React.FC = () => {
     return formatPrice(price);
   };
 
-  const getCurrentMonthName = () => {
-    if (selectedYear && selectedMonth) {
-      const date = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1);
-      return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    } else if (selectedYear && !selectedMonth) {
-      return `Année ${selectedYear}`;
-    } else if (!selectedYear && selectedMonth) {
-      const date = new Date(new Date().getFullYear(), parseInt(selectedMonth) - 1, 1);
-      return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const getCurrentPeriodName = () => {
+    if (dateFilters.dateFrom && dateFilters.dateTo) {
+      return `Du ${new Date(dateFilters.dateFrom).toLocaleDateString('fr-FR')} au ${new Date(dateFilters.dateTo).toLocaleDateString('fr-FR')}`;
+    } else if (dateFilters.dateFrom && !dateFilters.dateTo) {
+      return `À partir du ${new Date(dateFilters.dateFrom).toLocaleDateString('fr-FR')}`;
+    } else if (!dateFilters.dateFrom && dateFilters.dateTo) {
+      return `Jusqu'au ${new Date(dateFilters.dateTo).toLocaleDateString('fr-FR')}`;
     } else {
       return new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     }
@@ -436,7 +407,7 @@ const Dashboard: React.FC = () => {
             <BarChart3 className="w-8 h-8 text-blue-600" />
             Tableau de bord
           </h1>
-          <p className="text-gray-600 mt-1">Vue d'ensemble des performances - {getCurrentMonthName()}</p>
+          <p className="text-gray-600 mt-1">Vue d'ensemble des performances - {getCurrentPeriodName()}</p>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -449,56 +420,45 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Discrete Filter Controls */}
+      {/* Date Filter Controls */}
       <div className="bg-white/70 backdrop-blur-sm rounded-lg border border-gray-200/50 p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Période d'analyse</span>
+            <span className="text-sm font-medium text-gray-700">Filtrer par période</span>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="month-filter" className="text-xs text-gray-600 font-medium">
-                Mois
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <label htmlFor="date-from" className="text-xs text-gray-600 font-medium">
+                Date début
               </label>
-              <select
-                id="month-filter"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 min-w-[120px]"
-              >
-                {generateMonthOptions().map((month) => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="date"
+                id="date-from"
+                value={dateFilters.dateFrom}
+                onChange={(e) => handleDateFilterChange('dateFrom', e.target.value)}
+                className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90"
+              />
             </div>
             
-            <div className="flex items-center gap-2">
-              <label htmlFor="year-filter" className="text-xs text-gray-600 font-medium">
-                Année
+            <div className="flex items-center gap-3">
+              <label htmlFor="date-to" className="text-xs text-gray-600 font-medium">
+                Date fin
               </label>
-              <select
-                id="year-filter"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 min-w-[100px]"
-              >
-                {generateYearOptions().map((year) => (
-                  <option key={year.value} value={year.value}>
-                    {year.label}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="date"
+                id="date-to"
+                value={dateFilters.dateTo}
+                onChange={(e) => handleDateFilterChange('dateTo', e.target.value)}
+                className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90"
+              />
             </div>
             
-            {(selectedMonth || selectedYear) && (
+            {hasActiveFilters() && (
               <button
                 onClick={() => {
-                  setSelectedMonth('');
-                  setSelectedYear('');
+                  clearDateFilters();
                 }}
                 className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors duration-200"
               >
@@ -508,16 +468,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        {(selectedMonth || selectedYear) && (
+        {hasActiveFilters() && (
           <div className="mt-3 pt-3 border-t border-gray-200/50">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <span className="text-xs text-blue-700 font-medium">
-                Filtre actif: 
-                {selectedMonth && ` ${generateMonthOptions().find(m => m.value === selectedMonth)?.label}`}
-                {selectedYear && ` ${selectedYear}`}
-                {!selectedMonth && selectedYear && ` Toute l'année ${selectedYear}`}
-                {selectedMonth && !selectedYear && ` ${generateMonthOptions().find(m => m.value === selectedMonth)?.label} (année courante)`}
+                Période active: {getCurrentPeriodName()}
               </span>
             </div>
           </div>
