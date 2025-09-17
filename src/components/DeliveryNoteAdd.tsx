@@ -187,7 +187,10 @@ const DeliveryNoteAdd: React.FC<DeliveryNoteAddProps> = ({ onNavigateBack, preSe
           *,
          produit:produits(nom_produit, unite, dimension_standard)
         `)
-        .eq('commande_id', orderId);
+        .
+    }
+  }
+}eq('commande_id', orderId);
 
       if (error) throw error;
 
