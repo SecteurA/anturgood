@@ -74,6 +74,9 @@ const ClientReports: React.FC = () => {
     dateTo: ''
   });
 
+  // New state for last payment filtering
+  const [lastPaymentDate, setLastPaymentDate] = useState<string | null>(null);
+  const [showFromLastPayment, setShowFromLastPayment] = useState(false);
   useEffect(() => {
     fetchClients();
   }, []);
