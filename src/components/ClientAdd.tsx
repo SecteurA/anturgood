@@ -27,15 +27,20 @@ const ClientAdd: React.FC<ClientAddProps> = ({ onNavigateBack }) => {
       const { data, error } = await supabase
         .from('clients')
         .select('numero_client')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        ;
 
       if (error) throw error;
 
       let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].numero_client.replace('CLT-', '');
-        nextNumber = parseInt(lastNumber) + 1;
+        // Extract all numeric parts and find the maximum
+        const numbers = data
+          .map(item => parseInt(item.numero_client.replace('CLT-', '')))
+          .filter(num => !isNaN(num));
+        
+        if (numbers.length > 0) {
+          nextNumber = Math.max(...numbers) + 1;
+        }
       }
 
       return `CLT-${String(nextNumber).padStart(3, '0')}`;
