@@ -344,18 +344,56 @@ const ClientReports: React.FC = () => {
 
   // Calculate totals for selected period
   const calculateTotals = () => {
-    const totalDeliveries = deliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
-    const totalBalance = totalDeliveries - totalPayments;
+    const totalDeliveries = filteredDeliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
+    const filteredPaymentsTotal = filteredPayments.reduce((sum, payment) => sum + payment.montant, 0);
+    const totalBalance = totalDeliveries - filteredPaymentsTotal;
     
     return {
       totalDeliveries,
-      totalPaid: totalPayments,
+      totalPaid: filteredPaymentsTotal,
       totalBalance,
-      deliveriesCount: deliveries.length
+      deliveriesCount: filteredDeliveries.length
     };
   };
 
   const totals = calculateTotals();
+
+  // Apply the same filtering logic for both screen and print
+  const getFilteredDeliveries = () => {
+    let effectiveDateFrom = dateFilters.dateFrom;
+    
+    if (showFromLastPayment && lastPaymentDate) {
+      const dayAfterLastPayment = new Date(lastPaymentDate);
+      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
+    }
+    
+    return deliveries.filter(delivery => {
+      const dateMatch = (!effectiveDateFrom || delivery.date_livraison >= effectiveDateFrom) &&
+                      (!dateFilters.dateTo || delivery.date_livraison <= dateFilters.dateTo);
+      return dateMatch;
+    });
+  };
+
+  const getFilteredPayments = () => {
+    let effectiveDateFrom = dateFilters.dateFrom;
+    
+    if (showFromLastPayment && lastPaymentDate) {
+      const dayAfterLastPayment = new Date(lastPaymentDate);
+      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
+    }
+    
+    return payments.filter(payment => {
+      const dateMatch = (!effectiveDateFrom || payment.date_paiement >= effectiveDateFrom) &&
+                      (!dateFilters.dateTo || payment.date_paiement <= dateFilters.dateTo);
+      return dateMatch;
+    });
+  };
+
+  // Use filtered data for calculations and display
+  const filteredDeliveries = getFilteredDeliveries();
+  const filteredPayments = getFilteredPayments();
 
   const getDateRangeText = () => {
     if (showFromLastPayment && lastPaymentDate) {
@@ -724,7 +762,7 @@ const ClientReports: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {deliveries.map((delivery) => 
+            {filteredDeliveries.map((delivery) => 
               delivery.items.map((item, itemIndex) => (
                 <tr key={`${delivery.id}-${item.id}`}>
                   {itemIndex === 0 && (
@@ -776,7 +814,7 @@ const ClientReports: React.FC = () => {
       {/* Payment History - Print only */}
       <div className="hidden print:block mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique des Paiements</h3>
-        {payments.length > 0 ? (
+        {filteredPayments.length > 0 ? (
           <table className="w-full border-collapse border border-gray-800 mb-6">
             <thead>
               <tr className="bg-gray-100">
@@ -788,7 +826,7 @@ const ClientReports: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {filteredPayments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="border border-gray-800 px-3 py-2 text-sm">
                     {new Date(payment.date_paiement).toLocaleDateString('fr-FR')}
@@ -893,8 +931,8 @@ const ClientReports: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {deliveries.length > 0 ? (
-                deliveries.map((delivery) => {
+              {filteredDeliveries.length > 0 ? (
+                filteredDeliveries.map((delivery) => {
                   return (
                     <tr key={delivery.id} className="hover:bg-gray-50 print:hover:bg-transparent">
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -930,7 +968,7 @@ const ClientReports: React.FC = () => {
             </tbody>
             
             {/* Totals Footer */}
-            {deliveries.length > 0 && (
+            {filteredDeliveries.length > 0 && (
               <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                 <tr className="font-semibold">
                   <td className="px-4 py-4 text-sm font-bold text-gray-900" colSpan={4}>
