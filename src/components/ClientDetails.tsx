@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Users, Truck, ShoppingBag, TrendingUp, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, Users, Truck, ShoppingBag, TrendingUp, Calendar, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Client {
