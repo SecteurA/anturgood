@@ -795,7 +795,7 @@ const ClientReports: React.FC = () => {
               {deliveries.length} livraison(s)
             </span>
           </div>
-        </div></action>
+        </div>
         
         <div className="overflow-x-auto">
           <table className="w-full print:text-sm">
