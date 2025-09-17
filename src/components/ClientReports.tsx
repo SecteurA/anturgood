@@ -442,7 +442,7 @@ const ClientReports: React.FC = () => {
     const totalDeliveries = filteredDeliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
     const filteredPaymentsTotal = filteredPayments.reduce((sum, payment) => sum + payment.montant, 0);
     // Always use the client's actual total debt from database, not filtered calculation
-    const totalBalance = selectedClient.current_debt;
+    const totalBalance = selectedClient?.current_debt || 0;
     
     return {
       totalDeliveries,
@@ -452,7 +452,12 @@ const ClientReports: React.FC = () => {
     };
   };
 
-  const totals = calculateTotals();
+  const totals = selectedClient ? calculateTotals() : {
+    totalDeliveries: 0,
+    totalPaid: 0,
+    totalBalance: 0,
+    deliveriesCount: 0
+  };
 
   if (loading) {
     return (
