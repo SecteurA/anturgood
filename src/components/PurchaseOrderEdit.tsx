@@ -92,11 +92,28 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
 
       // Convert database format to component format
       const convertedItems = (data || []).map(item => {
+        // Calculate pieces and unit quantities properly based on product type
+        const requiresDual = item.produit && ['ml', 'm2', 'kg', 'l', 'cm', 'm', 'g', 't'].includes(item.produit.unite);
+        
+        let pieces, unitQty, totalQty;
+        
+        if (requiresDual) {
+          // For products with dual input (pieces × dimension)
+          pieces = item.quantite_pieces || Math.max(1, Math.round(item.quantite / (item.quantite_unitaire || item.produit?.dimension_standard || 1)));
+          unitQty = item.quantite_unitaire || item.produit?.dimension_standard || 1;
+          totalQty = pieces * unitQty;
+        } else {
+          // For simple products (unite, pcs, box)
+          pieces = item.quantite || 1;
+          unitQty = 1;
+          totalQty = pieces;
+        }
+        
         return {
           ...item,
-          quantite_pieces: item.quantite_pieces || 1,
-          quantite_unitaire: item.quantite_unitaire || item.quantite,
-          quantite_totale: item.quantite
+          quantite_pieces: pieces,
+          quantite_unitaire: unitQty,
+          quantite_totale: totalQty
         };
       });
       
@@ -539,31 +556,6 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            {formatPrice(item.total_ligne)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-600 hover:text-red-800 p-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                          Total:
-                        </td>
-                        <td className="px-4 py-3 text-sm font-bold text-gray-900">
-                          {formatPrice(calculateTotal())}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
               ) : (
