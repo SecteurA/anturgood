@@ -48,11 +48,15 @@ interface PurchaseOrderEditProps {
 const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, order }) => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [fournisseurs, setFournisseurs] = useState<any[]>([]);
+  const [selectedFournisseur, setSelectedFournisseur] = useState<any>(order.fournisseur);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showFournisseurModal, setShowFournisseurModal] = useState(false);
   const [productSearch, setProductSearch] = useState('');
+  const [fournisseurSearch, setFournisseurSearch] = useState('');
 
   const [formData, setFormData] = useState({
     statut: order.statut,
@@ -66,7 +70,8 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
     const loadData = async () => {
       await Promise.all([
         fetchOrderItems(),
-        fetchProducts()
+        fetchProducts(),
+        fetchFournisseurs()
       ]);
     };
     loadData();
@@ -92,11 +97,28 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
 
       // Convert database format to component format
       const convertedItems = (data || []).map(item => {
+        // Calculate pieces and unit quantities properly based on product type
+        const requiresDual = item.produit && ['ml', 'm2', 'kg', 'l', 'cm', 'm', 'g', 't'].includes(item.produit.unite);
+        
+        let pieces, unitQty, totalQty;
+        
+        if (requiresDual) {
+          // For products with dual input (pieces × dimension)
+          pieces = item.quantite_pieces || Math.max(1, Math.round(item.quantite / (item.quantite_unitaire || item.produit?.dimension_standard || 1)));
+          unitQty = item.quantite_unitaire || item.produit?.dimension_standard || 1;
+          totalQty = pieces * unitQty;
+        } else {
+          // For simple products (unite, pcs, box)
+          pieces = item.quantite || 1;
+          unitQty = 1;
+          totalQty = pieces;
+        }
+        
         return {
           ...item,
-          quantite_pieces: item.quantite_pieces || 1,
-          quantite_unitaire: item.quantite_unitaire || item.quantite,
-          quantite_totale: item.quantite
+          quantite_pieces: pieces,
+          quantite_unitaire: unitQty,
+          quantite_totale: totalQty
         };
       });
       
@@ -120,6 +142,20 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
       setProducts(data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchFournisseurs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('fournisseurs')
+        .select('*')
+        .order('societe', { ascending: true });
+
+      if (error) throw error;
+      setFournisseurs(data || []);
+    } catch (error) {
+      console.error('Error fetching fournisseurs:', error);
     }
   };
 
@@ -156,6 +192,12 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
     }
     
     setProductSearch('');
+  };
+
+  const handleSelectFournisseur = (fournisseur: any) => {
+    setSelectedFournisseur(fournisseur);
+    setShowFournisseurModal(false);
+    setFournisseurSearch('');
   };
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
@@ -239,6 +281,12 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
     p.nom_produit.toLowerCase().includes(productSearch.toLowerCase())
   );
 
+  const filteredFournisseurs = fournisseurs.filter(f =>
+    f.societe.toLowerCase().includes(fournisseurSearch.toLowerCase()) ||
+    f.nom.toLowerCase().includes(fournisseurSearch.toLowerCase()) ||
+    f.prenom.toLowerCase().includes(fournisseurSearch.toLowerCase())
+  );
+
   const getUnitLabel = (unite: string) => {
     const unitLabels = {
       unite: 'Unité',
@@ -306,6 +354,7 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
       const { data, error } = await supabase
         .from('bon_de_commande')
         .update({
+          fournisseur_id: selectedFournisseur.id,
           statut: formData.statut,
           notes: formData.notes.trim() || null,
           total_ht: newTotal
@@ -441,14 +490,22 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
                 Fournisseur
               </h2>
               
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="font-medium text-gray-900">{order.fournisseur.societe}</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  {order.fournisseur.prenom} {order.fournisseur.nom}
+              <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div>
+                  <div className="font-medium text-gray-900">{selectedFournisseur.societe}</div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    {selectedFournisseur.prenom} {selectedFournisseur.nom}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {selectedFournisseur.numero_fournisseur}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {order.fournisseur.numero_fournisseur}
-                </div>
+                <button
+                  onClick={() => setShowFournisseurModal(true)}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Changer
+                </button>
               </div>
             </div>
 
@@ -545,7 +602,7 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
                           <td className="px-4 py-3">
                             <button
                               onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-600 hover:text-red-800 p-1"
+                              className="text-red-600 hover:text-red-800 p-1 rounded transition-colors duration-200"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -553,17 +610,6 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                          Total:
-                        </td>
-                        <td className="px-4 py-3 text-sm font-bold text-gray-900">
-                          {formatPrice(calculateTotal())}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
               ) : (
@@ -896,6 +942,57 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
             <div className="p-6 border-t border-gray-200">
               <button
                 onClick={() => setShowProductModal(false)}
+                className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fournisseur Modal */}
+      {showFournisseurModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Changer le fournisseur</h3>
+            </div>
+            <div className="p-6">
+              <div className="relative mb-4">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un fournisseur..."
+                  value={fournisseurSearch}
+                  onChange={(e) => setFournisseurSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <div className="space-y-2">
+                  {filteredFournisseurs.map((fournisseur) => (
+                    <button
+                      key={fournisseur.id}
+                      onClick={() => handleSelectFournisseur(fournisseur)}
+                      className={`w-full text-left p-4 border rounded-lg transition-colors duration-200 ${
+                        selectedFournisseur.id === fournisseur.id
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900">{fournisseur.societe}</div>
+                      <div className="text-sm text-gray-600">
+                        {fournisseur.prenom} {fournisseur.nom} - {fournisseur.numero_fournisseur}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowFournisseurModal(false)}
                 className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200"
               >
                 Fermer
