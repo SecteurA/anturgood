@@ -87,6 +87,31 @@ const ClientReports: React.FC = () => {
     }
   }, [selectedClient, dateFilters]);
 
+  const fetchLastPaymentDate = async (clientId: string) => {
+    try {
+      const { data: lastPaymentData, error: lastPaymentError } = await supabase
+        .from('paiements_clients')
+        .select('date_paiement')
+        .eq('client_id', clientId)
+        .order('date_paiement', { ascending: false })
+        .limit(1);
+
+      if (lastPaymentError) {
+        console.error('Error fetching last payment:', lastPaymentError);
+        return null;
+      }
+
+      if (lastPaymentData && lastPaymentData.length > 0) {
+        return lastPaymentData[0].date_paiement;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error in fetchLastPaymentDate:', error);
+      return null;
+    }
+  };
+
   const fetchClients = async () => {
     try {
       setLoading(true);
@@ -114,6 +139,19 @@ const ClientReports: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // Fetch last payment date for this client
+      const lastPayment = await fetchLastPaymentDate(selectedClient.id);
+      setLastPaymentDate(lastPayment);
+
+      // If "show from last payment" is enabled and we have a last payment date,
+      // automatically set the start date to the day after the last payment
+      let effectiveDateFrom = dateFilters.dateFrom;
+      if (showFromLastPayment && lastPayment) {
+        const dayAfterLastPayment = new Date(lastPayment);
+        dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+        effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
+      }
+
       // Build date filters for deliveries
       let deliveriesQuery = supabase
         .from('bon_de_livraison')
@@ -137,8 +175,8 @@ const ClientReports: React.FC = () => {
         .neq('statut', 'annulee') // Exclude cancelled delivery notes
         .order('date_livraison', { ascending: false });
 
-      if (dateFilters.dateFrom) {
-        deliveriesQuery = deliveriesQuery.gte('date_livraison', dateFilters.dateFrom);
+      if (effectiveDateFrom) {
+        deliveriesQuery = deliveriesQuery.gte('date_livraison', effectiveDateFrom);
       }
       if (dateFilters.dateTo) {
         deliveriesQuery = deliveriesQuery.lte('date_livraison', dateFilters.dateTo);
@@ -155,8 +193,8 @@ const ClientReports: React.FC = () => {
         .select('*')
         .eq('client_id', selectedClient.id);
 
-      if (dateFilters.dateFrom) {
-        paymentsQuery = paymentsQuery.gte('date_paiement', dateFilters.dateFrom);
+      if (effectiveDateFrom) {
+        paymentsQuery = paymentsQuery.gte('date_paiement', effectiveDateFrom);
       }
       if (dateFilters.dateTo) {
         paymentsQuery = paymentsQuery.lte('date_paiement', dateFilters.dateTo);
@@ -178,6 +216,8 @@ const ClientReports: React.FC = () => {
   const handleClientSelect = (client: Client) => {
     setSelectedClient(client);
     setSearchTerm('');
+    // Reset the toggle when selecting a new client
+    setShowFromLastPayment(false);
   };
 
   // Handle local date input changes (doesn't trigger re-render)
@@ -205,6 +245,7 @@ const ClientReports: React.FC = () => {
       dateFrom: '',
       dateTo: ''
     });
+    setShowFromLastPayment(false);
   };
 
   const handlePrint = () => {
@@ -317,6 +358,17 @@ const ClientReports: React.FC = () => {
   const totals = calculateTotals();
 
   const getDateRangeText = () => {
+    if (showFromLastPayment && lastPaymentDate) {
+      const dayAfterLastPayment = new Date(lastPaymentDate);
+      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+      const startText = `À partir du ${dayAfterLastPayment.toLocaleDateString('fr-FR')} (après dernier paiement)`;
+      
+      if (dateFilters.dateTo) {
+        return `${startText} jusqu'au ${new Date(dateFilters.dateTo).toLocaleDateString('fr-FR')}`;
+      }
+      return startText;
+    }
+    
     if (dateFilters.dateFrom && dateFilters.dateTo) {
       return `Du ${new Date(dateFilters.dateFrom).toLocaleDateString('fr-FR')} au ${new Date(dateFilters.dateTo).toLocaleDateString('fr-FR')}`;
     } else if (dateFilters.dateFrom) {
