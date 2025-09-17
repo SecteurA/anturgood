@@ -163,7 +163,7 @@ const ClientReports: React.FC = () => {
       setPayments(paymentsData || []);
 
       const totalPaidAmount = (paymentsData || []).reduce((sum, p) => sum + p.montant, 0);
-      setTotalPayments(totalPaidAmount);</action>
+      setTotalPayments(totalPaidAmount);
     } catch (err: any) {
       console.error('Error fetching client deliveries:', err);
       setError('Erreur lors du chargement des livraisons');
