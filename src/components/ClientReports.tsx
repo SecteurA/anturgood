@@ -516,6 +516,27 @@ const ClientReports: React.FC = () => {
           Filtres de période
         </h3>
         
+        {/* Show from last payment toggle */}
+        {lastPaymentDate && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="show-from-last-payment"
+                checked={showFromLastPayment}
+                onChange={(e) => setShowFromLastPayment(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="show-from-last-payment" className="text-sm font-medium text-blue-800">
+                Afficher à partir du dernier paiement
+              </label>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Dernier paiement: {new Date(lastPaymentDate).toLocaleDateString('fr-FR')}
+            </p>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label htmlFor="date-from" className="block text-sm font-medium text-gray-700 mb-2">
@@ -524,11 +545,19 @@ const ClientReports: React.FC = () => {
             <input
               type="date"
               id="date-from"
+              disabled={showFromLastPayment}
               value={localDateFilters.dateFrom}
               onChange={(e) => handleLocalDateChange('dateFrom', e.target.value)}
               onBlur={(e) => handleDateFilterApply('dateFrom', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                showFromLastPayment ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
             />
+            {showFromLastPayment && (
+              <p className="text-xs text-gray-500 mt-1">
+                Déterminé automatiquement par le dernier paiement
+              </p>
+            )}
           </div>
           
           <div>
