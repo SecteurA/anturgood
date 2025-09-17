@@ -26,15 +26,20 @@ const ChauffeurAdd: React.FC<ChauffeurAddProps> = ({ onNavigateBack }) => {
       const { data, error } = await supabase
         .from('chauffeurs')
         .select('numero_chauffeur')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        ;
 
       if (error) throw error;
 
       let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].numero_chauffeur.replace('CHA-', '');
-        nextNumber = parseInt(lastNumber) + 1;
+        // Extract all numeric parts and find the maximum
+        const numbers = data
+          .map(item => parseInt(item.numero_chauffeur.replace('CHA-', '')))
+          .filter(num => !isNaN(num));
+        
+        if (numbers.length > 0) {
+          nextNumber = Math.max(...numbers) + 1;
+        }
       }
 
       return `CHA-${String(nextNumber).padStart(3, '0')}`;

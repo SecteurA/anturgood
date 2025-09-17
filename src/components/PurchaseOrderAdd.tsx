@@ -61,15 +61,20 @@ const PurchaseOrderAdd: React.FC<PurchaseOrderAddProps> = ({ onNavigateBack }) =
       const { data, error } = await supabase
         .from('bon_de_commande')
         .select('numero_commande')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        ;
 
       if (error) throw error;
 
       let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].numero_commande.replace('BC-', '');
-        nextNumber = parseInt(lastNumber) + 1;
+        // Extract all numeric parts and find the maximum
+        const numbers = data
+          .map(item => parseInt(item.numero_commande.replace('BC-', '')))
+          .filter(num => !isNaN(num));
+        
+        if (numbers.length > 0) {
+          nextNumber = Math.max(...numbers) + 1;
+        }
       }
 
       return `BC-${String(nextNumber).padStart(4, '0')}`;

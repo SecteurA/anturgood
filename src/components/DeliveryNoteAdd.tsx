@@ -80,15 +80,20 @@ const DeliveryNoteAdd: React.FC<DeliveryNoteAddProps> = ({ onNavigateBack, preSe
       const { data, error } = await supabase
         .from('bon_de_livraison')
         .select('numero_livraison')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        ;
 
       if (error) throw error;
 
       let nextNumber = 1;
       if (data && data.length > 0) {
-        const lastNumber = data[0].numero_livraison.replace('BL-', '');
-        nextNumber = parseInt(lastNumber) + 1;
+        // Extract all numeric parts and find the maximum
+        const numbers = data
+          .map(item => parseInt(item.numero_livraison.replace('BL-', '')))
+          .filter(num => !isNaN(num));
+        
+        if (numbers.length > 0) {
+          nextNumber = Math.max(...numbers) + 1;
+        }
       }
 
       return `BL-${String(nextNumber).padStart(4, '0')}`;
