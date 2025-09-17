@@ -349,7 +349,7 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
         const itemsToInsert = orderItems.map(item => ({
           commande_id: order.id,
           produit_id: item.produit_id,
-          quantite: item.quantite_totale, // Store total calculated quantity
+          quantite: requiresDualInput(item.produit.unite) ? item.quantite_totale : item.quantite_pieces,
           quantite_pieces: item.quantite_pieces, // Store number of pieces
           quantite_unitaire: item.quantite_unitaire, // Store dimension per piece
           prix_unitaire: item.prix_unitaire
