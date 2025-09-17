@@ -332,6 +332,7 @@ const PurchaseOrderAdd: React.FC<PurchaseOrderAddProps> = ({ onNavigateBack }) =
     }
 
     setIsSubmitting(true);
+    setErrors({}); // Clear previous errors
 
     try {
       // Create the purchase order
@@ -372,7 +373,27 @@ const PurchaseOrderAdd: React.FC<PurchaseOrderAddProps> = ({ onNavigateBack }) =
       onNavigateBack();
     } catch (error: any) {
       console.error('Error creating purchase order:', error);
-      setErrors({ general: 'Erreur lors de la création. Veuillez réessayer.' });
+      
+      // Handle specific database errors
+      if (error.code === '23505') {
+        // Unique constraint violation
+        if (error.details?.includes('numero_commande')) {
+          setErrors({ general: `Le numéro de commande ${nextOrderNumber} existe déjà. Rechargez la page et réessayez.` });
+        } else {
+          setErrors({ general: 'Une commande avec ces informations existe déjà.' });
+        }
+      } else if (error.code === '23503') {
+        // Foreign key constraint violation
+        setErrors({ general: 'Erreur de référence: le fournisseur ou un produit sélectionné n\'existe plus.' });
+      } else if (error.code === '23514') {
+        // Check constraint violation
+        setErrors({ general: 'Erreur de validation: statut de commande invalide ou données incorrectes.' });
+      } else if (error.message) {
+        // Show the actual error message from the database
+        setErrors({ general: `Erreur: ${error.message}` });
+      } else {
+        setErrors({ general: 'Erreur lors de la création. Veuillez réessayer.' });
+      }
     } finally {
       setIsSubmitting(false);
     }
