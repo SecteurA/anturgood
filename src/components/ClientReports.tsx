@@ -342,59 +342,6 @@ const ClientReports: React.FC = () => {
     );
   };
 
-  // Calculate totals for selected period
-  const calculateTotals = () => {
-    const totalDeliveries = filteredDeliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
-    const filteredPaymentsTotal = filteredPayments.reduce((sum, payment) => sum + payment.montant, 0);
-    const totalBalance = totalDeliveries - filteredPaymentsTotal;
-    
-    return {
-      totalDeliveries,
-      totalPaid: filteredPaymentsTotal,
-      totalBalance,
-      deliveriesCount: filteredDeliveries.length
-    };
-  };
-
-  const totals = calculateTotals();
-
-  // Apply the same filtering logic for both screen and print
-  const getFilteredDeliveries = () => {
-    let effectiveDateFrom = dateFilters.dateFrom;
-    
-    if (showFromLastPayment && lastPaymentDate) {
-      const dayAfterLastPayment = new Date(lastPaymentDate);
-      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
-      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
-    }
-    
-    return deliveries.filter(delivery => {
-      const dateMatch = (!effectiveDateFrom || delivery.date_livraison >= effectiveDateFrom) &&
-                      (!dateFilters.dateTo || delivery.date_livraison <= dateFilters.dateTo);
-      return dateMatch;
-    });
-  };
-
-  const getFilteredPayments = () => {
-    let effectiveDateFrom = dateFilters.dateFrom;
-    
-    if (showFromLastPayment && lastPaymentDate) {
-      const dayAfterLastPayment = new Date(lastPaymentDate);
-      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
-      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
-    }
-    
-    return payments.filter(payment => {
-      const dateMatch = (!effectiveDateFrom || payment.date_paiement >= effectiveDateFrom) &&
-                      (!dateFilters.dateTo || payment.date_paiement <= dateFilters.dateTo);
-      return dateMatch;
-    });
-  };
-
-  // Use filtered data for calculations and display
-  const filteredDeliveries = getFilteredDeliveries();
-  const filteredPayments = getFilteredPayments();
-
   const getDateRangeText = () => {
     if (showFromLastPayment && lastPaymentDate) {
       const dayAfterLastPayment = new Date(lastPaymentDate);
@@ -452,6 +399,59 @@ const ClientReports: React.FC = () => {
   useEffect(() => {
     setLocalDateFilters(dateFilters);
   }, [dateFilters]);
+
+  // Define filtering functions first
+  const getFilteredDeliveries = () => {
+    let effectiveDateFrom = dateFilters.dateFrom;
+    
+    if (showFromLastPayment && lastPaymentDate) {
+      const dayAfterLastPayment = new Date(lastPaymentDate);
+      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
+    }
+    
+    return deliveries.filter(delivery => {
+      const dateMatch = (!effectiveDateFrom || delivery.date_livraison >= effectiveDateFrom) &&
+                      (!dateFilters.dateTo || delivery.date_livraison <= dateFilters.dateTo);
+      return dateMatch;
+    });
+  };
+
+  const getFilteredPayments = () => {
+    let effectiveDateFrom = dateFilters.dateFrom;
+    
+    if (showFromLastPayment && lastPaymentDate) {
+      const dayAfterLastPayment = new Date(lastPaymentDate);
+      dayAfterLastPayment.setDate(dayAfterLastPayment.getDate() + 1);
+      effectiveDateFrom = dayAfterLastPayment.toISOString().split('T')[0];
+    }
+    
+    return payments.filter(payment => {
+      const dateMatch = (!effectiveDateFrom || payment.date_paiement >= effectiveDateFrom) &&
+                      (!dateFilters.dateTo || payment.date_paiement <= dateFilters.dateTo);
+      return dateMatch;
+    });
+  };
+
+  // Use filtered data for calculations and display
+  const filteredDeliveries = getFilteredDeliveries();
+  const filteredPayments = getFilteredPayments();
+
+  // Calculate totals for selected period
+  const calculateTotals = () => {
+    const totalDeliveries = filteredDeliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
+    const filteredPaymentsTotal = filteredPayments.reduce((sum, payment) => sum + payment.montant, 0);
+    const totalBalance = totalDeliveries - filteredPaymentsTotal;
+    
+    return {
+      totalDeliveries,
+      totalPaid: filteredPaymentsTotal,
+      totalBalance,
+      deliveriesCount: filteredDeliveries.length
+    };
+  };
+
+  const totals = calculateTotals();
 
   if (loading) {
     return (
