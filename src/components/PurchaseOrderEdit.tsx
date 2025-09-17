@@ -181,8 +181,8 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
         quantite_pieces: 1,
         quantite_unitaire: product.dimension_standard,
         quantite_totale: 1 * product.dimension_standard,
-        prix_unitaire: product.prix_achat, 
-        total_ligne: product.prix_achat * (1 * product.dimension_standard),
+        prix_unitaire: product.prix_vente, 
+        total_ligne: product.prix_vente * (1 * product.dimension_standard),
         produit: {
           nom_produit: product.nom_produit,
           unite: product.unite

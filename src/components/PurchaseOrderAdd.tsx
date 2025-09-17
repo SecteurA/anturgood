@@ -145,11 +145,11 @@ const PurchaseOrderAdd: React.FC<PurchaseOrderAddProps> = ({ onNavigateBack }) =
         id: `temp-${Date.now()}`,
         produit_id: product.id,
         nom_produit: product.nom_produit,
-        prix_unitaire: product.prix_achat,
+        prix_unitaire: product.prix_vente,
         quantite_pieces: 1,
         quantite_unitaire: product.dimension_standard,
         quantite_totale: 1 * product.dimension_standard,
-        total: product.prix_achat * (1 * product.dimension_standard),
+        total: product.prix_vente * (1 * product.dimension_standard),
         unite: product.unite
       };
       setOrderItems(prev => [...prev, newItem]);
@@ -737,14 +737,14 @@ const PurchaseOrderAdd: React.FC<PurchaseOrderAddProps> = ({ onNavigateBack }) =
                             {product.nom_produit}
                             {getUnitBadge(product.unite)}
                           </div>
-                          <div className="text-sm text-gray-600">Prix d'achat: {formatPrice(product.prix_achat)}</div>
+                          <div className="text-sm text-gray-600">Prix de vente: {formatPrice(product.prix_vente)}</div>
                           {requiresDualInput(product.unite) ? (
                             <div className="text-xs text-gray-500 mt-1">
                               Dimension standard: {product.dimension_standard} {getUnitLabel(product.unite)}/pièce
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500 mt-1">
-                              Prix par {getUnitLabel(product.unite)}
+                              Prix de vente par {getUnitLabel(product.unite)}
                             </div>
                           )}
                         </div>
