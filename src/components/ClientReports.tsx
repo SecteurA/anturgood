@@ -441,7 +441,8 @@ const ClientReports: React.FC = () => {
   const calculateTotals = () => {
     const totalDeliveries = filteredDeliveries.reduce((sum, delivery) => sum + delivery.total_ht, 0);
     const filteredPaymentsTotal = filteredPayments.reduce((sum, payment) => sum + payment.montant, 0);
-    const totalBalance = totalDeliveries - filteredPaymentsTotal;
+    // Always use the client's actual total debt from database, not filtered calculation
+    const totalBalance = selectedClient.current_debt;
     
     return {
       totalDeliveries,
@@ -719,11 +720,11 @@ const ClientReports: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Solde</p>
-              <p className={`text-2xl font-bold ${totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {formatPrice(totals.totalBalance)}
+              <p className={`text-2xl font-bold ${selectedClient.current_debt > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {formatPrice(selectedClient.current_debt)}
               </p>
             </div>
-            <AlertCircle className={`w-8 h-8 ${totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'}`} />
+            <AlertCircle className={`w-8 h-8 ${selectedClient.current_debt > 0 ? 'text-red-600' : 'text-green-600'}`} />
           </div>
         </div>
       </div>
