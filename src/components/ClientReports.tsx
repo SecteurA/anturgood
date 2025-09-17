@@ -733,16 +733,16 @@ const ClientReports: React.FC = () => {
         <div className="grid grid-cols-3 gap-8 mb-6">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Chiffre d'Affaires</h3>
-            <p className="text-2xl font-bold text-blue-600">{formatPrice(totals.totalDeliveries)}</p>
+            <p className="text-2xl font-bold text-blue-600">{formatPrice(selectedClient.chiffre_affaires)}</p>
           </div>
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Payé</h3>
-            <p className="text-2xl font-bold text-green-600">{formatPrice(totals.totalPaid)}</p>
+            <p className="text-2xl font-bold text-green-600">{formatPrice(selectedClient.total_paiements)}</p>
           </div>
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Crédit Client</h3>
-            <p className={`text-2xl font-bold ${totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {formatPrice(totals.totalBalance)}
+            <p className={`text-2xl font-bold ${selectedClient.current_debt > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {formatPrice(selectedClient.current_debt)}
             </p>
           </div>
         </div>
@@ -877,21 +877,19 @@ const ClientReports: React.FC = () => {
             <tr>
               <td className="border border-gray-800 px-4 py-2 font-medium">Chiffre d'Affaires Total</td>
               <td className="border border-gray-800 px-4 py-2 text-right font-medium text-blue-600">
-                {formatPrice(totals.totalDeliveries)}
+                {formatPrice(selectedClient.chiffre_affaires)}
               </td>
             </tr>
             <tr>
               <td className="border border-gray-800 px-4 py-2 font-medium">Total Payé</td>
               <td className="border border-gray-800 px-4 py-2 text-right font-medium text-green-600">
-                {formatPrice(totals.totalPaid)}
+                {formatPrice(selectedClient.total_paiements)}
               </td>
             </tr>
             <tr className="bg-gray-50">
               <td className="border border-gray-800 px-4 py-3 font-bold">CRÉDIT CLIENT</td>
-              <td className={`border border-gray-800 px-4 py-3 text-right font-bold ${
-                totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'
-              }`}>
-                {formatPrice(totals.totalBalance)}
+              <td className="border border-gray-800 px-4 py-3 text-right font-bold text-red-600">
+                {formatPrice(selectedClient.current_debt)}
               </td>
             </tr>
           </tbody>
