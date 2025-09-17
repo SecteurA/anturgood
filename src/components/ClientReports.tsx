@@ -33,11 +33,14 @@ interface DeliveryReport {
   items: Array<{
     id: string;
     quantite_livree: number;
+    quantite_pieces: number;
+    quantite_unitaire: number;
     prix_unitaire: number;
     total_ligne: number;
     produit: {
       nom_produit: string;
       prix_achat: number;
+      unite: string;
     };
   }>;
   bon_commande: {
@@ -54,6 +57,7 @@ const ClientReports: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [deliveries, setDeliveries] = useState<DeliveryReport[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [totalPayments, setTotalPayments] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,10 +118,12 @@ const ClientReports: React.FC = () => {
           *,
           items:bon_de_livraison_items(
             id,
+            quantite_pieces,
+            quantite_unitaire,
             quantite_livree,
             prix_unitaire,
             total_ligne,
-            produit:produits(nom_produit, prix_achat)
+            produit:produits(nom_produit, prix_achat, unite)
           ),
           bon_commande:bon_de_commande(
             numero_commande,
@@ -143,7 +149,7 @@ const ClientReports: React.FC = () => {
       // Get total payments for the client in the selected period
       let paymentsQuery = supabase
         .from('paiements_clients')
-        .select('montant')
+        .select('*')
         .eq('client_id', selectedClient.id);
 
       if (dateFilters.dateFrom) {
@@ -154,9 +160,10 @@ const ClientReports: React.FC = () => {
       }
 
       const { data: paymentsData } = await paymentsQuery;
-      const totalPaidAmount = (paymentsData || []).reduce((sum, p) => sum + p.montant, 0);
+      setPayments(paymentsData || []);
 
-      setTotalPayments(totalPaidAmount);
+      const totalPaidAmount = (paymentsData || []).reduce((sum, p) => sum + p.montant, 0);
+      setTotalPayments(totalPaidAmount);</action>
     } catch (err: any) {
       console.error('Error fetching client deliveries:', err);
       setError('Erreur lors du chargement des livraisons');
@@ -317,6 +324,37 @@ const ClientReports: React.FC = () => {
     return 'Toutes les périodes';
   };
 
+  const getUnitLabel = (unite: string) => {
+    const unitLabels = {
+      unite: 'Unité',
+      ml: 'ML',
+      m2: 'M²',
+      kg: 'KG',
+      l: 'L',
+      pcs: 'PCS',
+      box: 'Boîte',
+      cm: 'CM',
+      m: 'M',
+      g: 'G',
+      t: 'T'
+    };
+    return unitLabels[unite as keyof typeof unitLabels] || unite.toUpperCase();
+  };
+
+  const requiresDualInput = (unite: string) => {
+    return ['ml', 'm2', 'kg', 'l', 'cm', 'm', 'g', 't'].includes(unite);
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const methods = {
+      cash: 'Espèces',
+      cheque: 'Chèque',
+      effet: 'Effet',
+      virement: 'Virement'
+    };
+    return methods[method as keyof typeof methods] || method;
+  };
+
   // Sync local state with filters when they change externally (like clear filters)
   useEffect(() => {
     setLocalDateFilters(dateFilters);
@@ -450,13 +488,21 @@ const ClientReports: React.FC = () => {
 
       {/* Print Header - Only visible in print */}
       <div className="hidden print:block mb-8">
-        <div className="relative text-center border-b-2 border-gray-300 pb-4">
+        <div className="relative text-center border-b-2 border-gray-800 pb-6">
           <img 
             src="https://pub-237d2da54b564d23aaa1c3826e1d4e65.r2.dev/ANTURGOOD/logo2.png" 
             alt="ANTURGOOD Logo" 
-            className="absolute top-0 left-0 h-24 w-auto"
+            className="absolute top-0 left-0 h-32 w-auto"
           />
-          <h2 className="text-xl font-semibold text-gray-700 mt-2">Rapport Livraisons Client - {selectedClient?.societe || `${selectedClient?.prenom} ${selectedClient?.nom}`}</h2>
+          <div className="text-center mt-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">RAPPORT DÉTAILLÉ CLIENT</h2>
+            <p className="text-lg font-semibold text-gray-700">{selectedClient?.societe}</p>
+            <p className="text-sm text-gray-600">{selectedClient?.prenom} {selectedClient?.nom} - {selectedClient?.numero_client}</p>
+            <p className="text-sm text-gray-600 mt-2">
+              Période: {getDateRangeText()} | 
+              Généré le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -560,7 +606,187 @@ const ClientReports: React.FC = () => {
         </div>
       </div>
 
-      {/* Deliveries Table */}
+      {/* Financial Summary - Print only */}
+      <div className="hidden print:block mb-8">
+        <div className="grid grid-cols-3 gap-8 mb-6">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Chiffre d'Affaires</h3>
+            <p className="text-2xl font-bold text-blue-600">{formatPrice(totals.totalDeliveries)}</p>
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Payé</h3>
+            <p className="text-2xl font-bold text-green-600">{formatPrice(totals.totalPaid)}</p>
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Crédit Client</h3>
+            <p className={`text-2xl font-bold ${totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {formatPrice(totals.totalBalance)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Products Table - Print only */}
+      <div className="hidden print:block mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Détail des Produits Livrés</h3>
+        <table className="w-full border-collapse border border-gray-800 mb-8">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Date</th>
+              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">N° BL</th>
+              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">BC Source</th>
+              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Produit</th>
+              <th className="border border-gray-800 px-3 py-2 text-center font-semibold text-sm">Quantité</th>
+              <th className="border border-gray-800 px-3 py-2 text-right font-semibold text-sm">Prix Unit.</th>
+              <th className="border border-gray-800 px-3 py-2 text-right font-semibold text-sm">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deliveries.map((delivery) => 
+              delivery.items.map((item, itemIndex) => (
+                <tr key={`${delivery.id}-${item.id}`}>
+                  {itemIndex === 0 && (
+                    <>
+                      <td className="border border-gray-800 px-3 py-2 text-sm" rowSpan={delivery.items.length}>
+                        {new Date(delivery.date_livraison).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="border border-gray-800 px-3 py-2 text-sm font-medium text-blue-600" rowSpan={delivery.items.length}>
+                        {delivery.numero_livraison}
+                      </td>
+                      <td className="border border-gray-800 px-3 py-2 text-sm font-mono" rowSpan={delivery.items.length}>
+                        {delivery.bon_commande?.numero_commande || '-'}
+                      </td>
+                    </>
+                  )}
+                  <td className="border border-gray-800 px-3 py-2 text-sm">
+                    {item.produit.nom_produit}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-center text-sm">
+                    {requiresDualInput(item.produit.unite) ? (
+                      <div>
+                        <div>{item.quantite_pieces || Math.round(item.quantite_livree)} pièces</div>
+                        <div className="text-xs text-gray-600">
+                          {item.quantite_unitaire || 1} {getUnitLabel(item.produit.unite)}/pièce
+                        </div>
+                        <div className="font-medium">
+                          {item.quantite_livree} {getUnitLabel(item.produit.unite)}
+                        </div>
+                      </div>
+                    ) : (
+                      `${item.quantite_livree} ${getUnitLabel(item.produit.unite)}`
+                    )}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-right text-sm">
+                    {formatPrice(item.prix_unitaire)}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-right text-sm font-medium">
+                    {formatPrice(item.total_ligne)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot className="bg-gray-100">
+            <tr>
+              <td className="border border-gray-800 px-3 py-3 font-bold text-sm" colSpan={6}>
+                TOTAL GÉNÉRAL
+              </td>
+              <td className="border border-gray-800 px-3 py-3 text-right font-bold text-sm">
+                {formatPrice(totals.totalDeliveries)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* Payment History - Print only */}
+      <div className="hidden print:block mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique des Paiements</h3>
+        {payments.length > 0 ? (
+          <table className="w-full border-collapse border border-gray-800 mb-6">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Date</th>
+                <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Mode</th>
+                <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Référence</th>
+                <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Émetteur</th>
+                <th className="border border-gray-800 px-3 py-2 text-right font-semibold text-sm">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((payment) => (
+                <tr key={payment.id}>
+                  <td className="border border-gray-800 px-3 py-2 text-sm">
+                    {new Date(payment.date_paiement).toLocaleDateString('fr-FR')}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-sm">
+                    {getPaymentMethodLabel(payment.mode_paiement)}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-sm font-mono">
+                    {payment.reference || '-'}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-sm">
+                    {payment.issuer || '-'}
+                  </td>
+                  <td className="border border-gray-800 px-3 py-2 text-right text-sm font-medium">
+                    {formatPrice(payment.montant)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-100">
+              <tr>
+                <td className="border border-gray-800 px-3 py-3 font-bold text-sm" colSpan={4}>
+                  TOTAL PAIEMENTS
+                </td>
+                <td className="border border-gray-800 px-3 py-3 text-right font-bold text-sm">
+                  {formatPrice(totals.totalPaid)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        ) : (
+          <div className="text-center py-4 text-gray-500 border border-gray-300 rounded">
+            <p>Aucun paiement enregistré</p>
+          </div>
+        )}
+      </div>
+
+      {/* Summary Table - Print only */}
+      <div className="hidden print:block mb-8">
+        <table className="w-full border-collapse border border-gray-800">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-800 px-4 py-3 text-left font-bold">RÉCAPITULATIF FINANCIER</th>
+              <th className="border border-gray-800 px-4 py-3 text-right font-bold">MONTANT (DH)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-gray-800 px-4 py-2 font-medium">Chiffre d'Affaires Total</td>
+              <td className="border border-gray-800 px-4 py-2 text-right font-medium text-blue-600">
+                {formatPrice(totals.totalDeliveries)}
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-gray-800 px-4 py-2 font-medium">Total Payé</td>
+              <td className="border border-gray-800 px-4 py-2 text-right font-medium text-green-600">
+                {formatPrice(totals.totalPaid)}
+              </td>
+            </tr>
+            <tr className="bg-gray-50">
+              <td className="border border-gray-800 px-4 py-3 font-bold">CRÉDIT CLIENT</td>
+              <td className={`border border-gray-800 px-4 py-3 text-right font-bold ${
+                totals.totalBalance > 0 ? 'text-red-600' : 'text-green-600'
+              }`}>
+                {formatPrice(totals.totalBalance)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Deliveries Table - Screen only */}
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 print:hidden">
           <div className="flex items-center justify-between">
@@ -569,7 +795,7 @@ const ClientReports: React.FC = () => {
               {deliveries.length} livraison(s)
             </span>
           </div>
-        </div>
+        </div></action>
         
         <div className="overflow-x-auto">
           <table className="w-full print:text-sm">
