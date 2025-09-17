@@ -857,7 +857,7 @@ const ClientReports: React.FC = () => {
             
             {/* Totals Footer */}
             {deliveries.length > 0 && (
-              <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+              <tfoot className="bg-gray-100 border-t-2 border-gray-300 print:hidden">
                 <tr className="font-semibold">
                   <td className="px-4 py-4 text-sm font-bold text-gray-900" colSpan={4}>
                     TOTAUX ({totals.deliveriesCount} livraisons)
@@ -870,6 +870,11 @@ const ClientReports: React.FC = () => {
             )}
           </table>
         </div>
+      </div>
+
+      {/* Print Footer */}
+      <div className="hidden print:block absolute bottom-8 left-8 right-8 text-center text-xs text-gray-500 border-t border-gray-300 pt-4">
+        <p>ANTURGOOD - Système de gestion | Rapport généré le {new Date().toLocaleDateString('fr-FR')} à {new Date().toLocaleTimeString('fr-FR')}</p>
       </div>
 
       {/* Print Styles */}
@@ -885,25 +890,17 @@ const ClientReports: React.FC = () => {
             color-adjust: exact;
           }
           
-          .print\\:hidden {
-            display: none !important;
-          }
-          
-          .print\\:block {
-            display: block !important;
-          }
-          
           /* Hide everything except the table container and its content */
           * {
             visibility: hidden;
           }
           
           /* Show only the main content container and table */
+          .print\\:block,
+          .print\\:block *,
           .h-full,
-          .flex-1:last-child,
-          .flex-1:last-child *,
-          .hidden.print\\:block,
-          .hidden.print\\:block * {
+          .h-full *,
+          body {
             visibility: visible;
           }
           
@@ -912,14 +909,6 @@ const ClientReports: React.FC = () => {
             height: auto !important;
             display: block !important;
             position: static !important;
-          }
-          
-          .flex-1:last-child {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 15px !important;
-            background: white !important;
-            color: black !important;
           }
           
           /* Table styling for print */
@@ -932,7 +921,6 @@ const ClientReports: React.FC = () => {
           th, td {
             border: 1px solid #000 !important;
             padding: 8px !important;
-            text-align: left !important;
           }
           
           th {
@@ -954,10 +942,17 @@ const ClientReports: React.FC = () => {
             font-weight: bold !important;
           }
           
-          /* Hide any remaining layout elements */
-          nav, aside, button, .print\\:hidden {
+          .print\\:hidden {
             display: none !important;
-            visibility: hidden !important;
+          }
+          
+          .print\\:block {
+            display: block !important;
+          }
+          
+          /* Hide navigation and other UI elements */
+          nav, aside, .print\\:hidden {
+            display: none !important;
           }
         }
       `}</style>
