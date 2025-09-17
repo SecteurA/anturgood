@@ -931,7 +931,7 @@ const PurchaseOrderEdit: React.FC<PurchaseOrderEditProps> = ({ onNavigateBack, o
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="font-medium text-gray-900">{product.nom_produit}</div>
-                          <div className="text-sm text-gray-600">Prix d'achat: {formatPrice(product.prix_achat)}</div>
+                          <div className="text-sm text-gray-600">Prix de vente: {formatPrice(product.prix_vente)}</div>
                         </div>
                       </div>
                     </button>

@@ -339,8 +339,8 @@ const DeliveryNoteAdd: React.FC<DeliveryNoteAddProps> = ({ onNavigateBack, preSe
         prix_unitaire: item.prix_unitaire,
         quantite_pieces: item.quantite_pieces,
         quantite_unitaire: item.quantite_unitaire
-      }));
-
+        quantite_totale: item.quantite_pieces * item.quantite_unitaire,
+        total: item.prix_unitaire * (item.quantite_pieces * item.quantite_unitaire),
       const { error: itemsError } = await supabase
         .from('bon_de_livraison_items')
         .insert(itemsToInsert);
