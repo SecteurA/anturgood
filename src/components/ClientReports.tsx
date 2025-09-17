@@ -633,8 +633,6 @@ const ClientReports: React.FC = () => {
           <thead>
             <tr className="bg-gray-100">
               <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Date</th>
-              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">N° BL</th>
-              <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">BC Source</th>
               <th className="border border-gray-800 px-3 py-2 text-left font-semibold text-sm">Produit</th>
               <th className="border border-gray-800 px-3 py-2 text-center font-semibold text-sm">Quantité</th>
               <th className="border border-gray-800 px-3 py-2 text-right font-semibold text-sm">Prix Unit.</th>
@@ -646,17 +644,9 @@ const ClientReports: React.FC = () => {
               delivery.items.map((item, itemIndex) => (
                 <tr key={`${delivery.id}-${item.id}`}>
                   {itemIndex === 0 && (
-                    <>
                       <td className="border border-gray-800 px-3 py-2 text-sm" rowSpan={delivery.items.length}>
                         {new Date(delivery.date_livraison).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="border border-gray-800 px-3 py-2 text-sm font-medium text-blue-600" rowSpan={delivery.items.length}>
-                        {delivery.numero_livraison}
-                      </td>
-                      <td className="border border-gray-800 px-3 py-2 text-sm font-mono" rowSpan={delivery.items.length}>
-                        {delivery.bon_commande?.numero_commande || '-'}
-                      </td>
-                    </>
                   )}
                   <td className="border border-gray-800 px-3 py-2 text-sm">
                     {item.produit.nom_produit}
@@ -688,7 +678,7 @@ const ClientReports: React.FC = () => {
           </tbody>
           <tfoot className="bg-gray-100">
             <tr>
-              <td className="border border-gray-800 px-3 py-3 font-bold text-sm" colSpan={6}>
+              <td className="border border-gray-800 px-3 py-3 font-bold text-sm" colSpan={4}>
                 TOTAL GÉNÉRAL
               </td>
               <td className="border border-gray-800 px-3 py-3 text-right font-bold text-sm">
