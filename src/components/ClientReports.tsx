@@ -778,7 +778,7 @@ const ClientReports: React.FC = () => {
 
       {/* Deliveries Table - Screen only */}
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 print:hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">Rapport bon de livraison</h2>
             <span className="text-sm text-gray-600">
@@ -788,7 +788,7 @@ const ClientReports: React.FC = () => {
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full print:text-sm">
+          <table className="w-full print:hidden">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
@@ -847,7 +847,7 @@ const ClientReports: React.FC = () => {
             
             {/* Totals Footer */}
             {deliveries.length > 0 && (
-              <tfoot className="bg-gray-100 border-t-2 border-gray-300 print:hidden">
+              <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                 <tr className="font-semibold">
                   <td className="px-4 py-4 text-sm font-bold text-gray-900" colSpan={4}>
                     TOTAUX ({totals.deliveriesCount} livraisons)
